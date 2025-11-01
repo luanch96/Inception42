@@ -5,11 +5,20 @@ DOMAIN_NAME ?= luisanch.42.fr
 
 export DOMAIN_NAME
 
-.PHONY: all build up run down restart clean fclean test ensure-data-dir
+.PHONY: all build up run down restart clean fclean test ensure-data-dir set-permissions
 
 all: run
 
-ensure-data-dir:
+set-permissions:
+	@echo "Configurando permisos de ejecución para scripts..."
+	@chmod +x setup-database.sh 2>/dev/null || true
+	@chmod +x srcs/requirements/nginx/tools/generate-ssl.sh 2>/dev/null || true
+	@chmod +x srcs/requirements/mariadb/configuration/entrypoint.sh 2>/dev/null || true
+	@chmod +x srcs/requirements/mariadb/configuration/settings.sh 2>/dev/null || true
+	@chmod +x srcs/requirements/wordpress/tools/setup-admin.sh 2>/dev/null || true
+	@echo "Permisos configurados correctamente"
+
+ensure-data-dir: set-permissions
 	@echo "Verificando directorio de datos..."
 	@mkdir -p /home/luisanch/data/mariadb /home/luisanch/data/wordpress /home/luisanch/data/ssl 2>/dev/null || \
 		(sudo mkdir -p /home/luisanch/data/mariadb /home/luisanch/data/wordpress /home/luisanch/data/ssl && \
