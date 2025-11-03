@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     gettext-base \
     mariadb-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/www/wordpress
@@ -32,15 +33,25 @@ RUN sed -i 's/listen = \/run\/php\/php8.2-fpm.sock/listen = 9000/' /etc/php/8.2/
 
 COPY conf/wp-config-simple.php /var/www/wordpress/wp-config.php
 
+# Instalar WP-CLI
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
+    chmod +x wp-cli.phar && \
+    mv wp-cli.phar /usr/local/bin/wp
+
 RUN chown -R www-data:www-data /var/www/wordpress
 RUN chmod -R 755 /var/www/wordpress
 
 EXPOSE 9000
 
+# Crear entrypoint que ejecuta setup-admin.sh antes de iniciar PHP-FPM
 RUN echo '#!/bin/bash' > /docker-entrypoint.sh && \
-    echo 'echo "WordPress container iniciado"' >> /docker-entrypoint.sh && \
+    echo 'set -e' >> /docker-entrypoint.sh && \
+    echo 'echo "Ejecutando configuración de WordPress..."' >> /docker-entrypoint.sh && \
+    echo '/usr/local/bin/setup-admin.sh' >> /docker-entrypoint.sh && \
+    echo 'echo "Iniciando PHP-FPM..."' >> /docker-entrypoint.sh && \
+    echo 'exec php-fpm8.2 -F' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 
 RUN sed -i 's/;daemonize = yes/daemonize = no/' /etc/php/8.2/fpm/php-fpm.conf
 
-CMD ["php-fpm8.2", "-F"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
